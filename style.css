@@ -7,3 +7,13 @@ body.night {
     background-color: black;
     color: white;
 }
+
+.grid line {
+    stroke: #ccc;
+    stroke-opacity: 0.25;
+    shape-rendering: crispEdges;
+}
+
+.grid path {
+    stroke-width: 0;
+}

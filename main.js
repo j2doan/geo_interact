@@ -35,18 +35,49 @@ dayToggle.addEventListener('click', () => {
 
 
 
-// DATE SELECTOR
-let selectedDate = localStorage.getItem('date') || '2025-10-27';  // GET FROM LOCAL STORAGE OR DEFAULT
-const pickDate = document.getElementById('pickDate');
-pickDate.addEventListener('change', () => {
-    // THE ACTUAL FILTER (AND VISUAL CHANGES)
-    selectedDate = pickDate.value;
-    localStorage.setItem('date', selectedDate); // SAVE PREFERENCE FOR REFRESH
-    console.log('date set: ', selectedDate);
+// DATE SLIDER
+const dates = [
+    "2025-10-27",
+    "2025-10-28",
+    "2025-10-29",
+    "2025-10-30",
+    "2025-10-31",
+    "2025-11-01",
+    "2025-11-02",
+    "2025-11-03"
+];
 
-    // UPDATE DATA BASED ON FILTER APPLIED
+const dateSlider = document.getElementById('dateSlider');
+const dateLabel = document.getElementById('dateLabel');
+
+let selectedDate = localStorage.getItem('date') || dates[0];
+let currentIndex = dates.indexOf(selectedDate);
+if (currentIndex === -1) currentIndex = 0;
+dateSlider.value = currentIndex;
+dateLabel.textContent = dates[currentIndex];
+
+dateSlider.addEventListener('input', () => {
+    const idx = +dateSlider.value;
+    selectedDate = dates[idx];
+    localStorage.setItem('date', selectedDate);
+    dateLabel.textContent = selectedDate;
+    console.log('date set:', selectedDate);
+
     loadAndPlot();
 });
+
+// DATE SELECTOR
+// let selectedDate = localStorage.getItem('date') || '2025-10-27';  // GET FROM LOCAL STORAGE OR DEFAULT
+// const pickDate = document.getElementById('pickDate');
+// pickDate.addEventListener('change', () => {
+//     // THE ACTUAL FILTER (AND VISUAL CHANGES)
+//     selectedDate = pickDate.value;
+//     localStorage.setItem('date', selectedDate); // SAVE PREFERENCE FOR REFRESH
+//     console.log('date set: ', selectedDate);
+
+//     // UPDATE DATA BASED ON FILTER APPLIED
+//     loadAndPlot();
+// });
 
 
 
@@ -120,7 +151,7 @@ function drawPlot(filteredData) {
     const brightnessValues = filteredData.map(d => +d.brightness);
 
     // SET PLOT MARGINS
-    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+    const margin = { top: 20, right: 20, bottom: 50, left: 60 };
     const width = plotwidth - margin.left - margin.right;
     const height = plotheight - margin.top - margin.bottom;
 
@@ -145,7 +176,7 @@ function drawPlot(filteredData) {
     );
 
     // GET THE ACTUAL KDE VECTOR
-    const kde = kernelDensityEstimator(kernelEpanechnikov(bandwidth), xTicks)(brightnessValues);
+    kde = kernelDensityEstimator(kernelEpanechnikov(bandwidth), xTicks)(brightnessValues);
 
     // SCALES
     xScale = d3.scaleLinear()
@@ -168,6 +199,24 @@ function drawPlot(filteredData) {
     g.append('g')
         .call(d3.axisLeft(yScale).ticks(5));
 
+    // AXES LABLES
+    g.append("text")
+        .attr("class", "x label")
+        .attr("text-anchor", "middle")
+        .attr("x", width / 2)
+        .attr("y", height + margin.bottom / 1.5)
+        .text("Brightness (Kelvin)")
+        .style("font-weight", "bold");
+
+    g.append("text")
+        .attr("class", "y label")
+        .attr("text-anchor", "middle")
+        .attr("transform", `rotate(-90)`)
+        .attr("x", -height / 2)
+        .attr("y", -margin.left / 1.5)
+        .text("Density")
+        .style("font-weight", "bold");
+
     // DRAW KDE LINE
     const line = d3.line()
         .curve(d3.curveBasis)
@@ -180,6 +229,64 @@ function drawPlot(filteredData) {
         .attr('stroke', 'steelblue')
         .attr('stroke-width', 2)
         .attr('d', line);
+
+    // ADD MEAN AND MEDIAN LINES
+    const mean = d3.mean(brightnessValues);
+    const median = d3.median(brightnessValues);
+
+    svg.append('line')
+    .attr('x1', xScale(mean) + margin.left)
+    .attr('x2', xScale(mean) + margin.left)
+    .attr('y1', margin.top)
+    .attr('y2', plotheight - margin.bottom)
+    .attr('stroke', 'purple')
+    .attr("stroke-width", 2)
+    .attr('stroke-dasharray', '4 2')
+    .attr('opacity', 0.7);
+
+    svg.append('line')
+    .attr('x1', xScale(median) + margin.left)
+    .attr('x2', xScale(median) + margin.left)
+    .attr('y1', margin.top)
+    .attr('y2', plotheight - margin.bottom)
+    .attr('stroke', 'green')
+    .attr("stroke-width", 2)
+    .attr('stroke-dasharray', '2 2')
+    .attr('opacity', 0.7);
+
+    const meanmedian = d3.select('#meanmedian')
+    meanmedian
+        .style('display', 'block')
+        .html(`
+            <strong>Mean Brightness (Purple):</strong> ${mean.toFixed(2)} |
+            <strong>Median Brightness (Green):</strong> ${median.toFixed(2)}
+        `);
+
+    // GRIDLINES
+    function makeXGridlines() {
+        return d3.axisBottom(xScale)
+            .ticks(10);
+    }
+
+    function makeYGridlines() {
+        return d3.axisLeft(yScale)
+            .ticks(5);
+    }
+
+    g.append("g")
+        .attr("class", "grid grid-x")
+        .attr("transform", `translate(0, ${height})`)
+        .call(makeXGridlines()
+            .tickSize(-height)
+            .tickFormat("")
+        );
+
+    g.append("g")
+        .attr("class", "grid grid-y")
+        .call(makeYGridlines()
+            .tickSize(-width)
+            .tickFormat("")
+        );
 }
 
 
@@ -198,6 +305,14 @@ function drawMap(filteredData) {
         .attr('r', 4)
         .attr('fill', d => colorScale(d.brightness)) // SET THEIR COLOR BASED ON BRIGHTNESS
         .attr('opacity', 0.7)
+        .on('mouseenter', (event, d) => { // MAKES MOUSE TURN INTO POINTER WHEN HOVER OVER DOT
+            d3.select(event.currentTarget)
+            .style('cursor', 'pointer');
+        })
+        .on('mouseleave', (event) => {
+            d3.select(event.currentTarget)
+            .style('cursor', 'default');
+        })
         .on('click', (event, d) => {
             event.stopPropagation(); // IF YOU CLICK ON SAME DOT AGAIN WHILE IT IS ACTIVE, IT WILL NOT DEACTIVATE
 
@@ -231,13 +346,40 @@ function drawMap(filteredData) {
                 .attr('stroke-width', 2)
                 .attr('opacity', 0.7);
 
+            // COMPUTE EXACT KDE
+            let kdeDensity = 0;
+            if (kde.length > 1) {
+                // FIND THE 2 KDE POINTS CLOSEST TO THE BRIGHTNESS. KDE CURRENTLY LOOKS LIKE: [[300.0, 0.0012], [301.0, 0.0020], [302.0, 0.0028], ...]
+                for (let i = 1; i < kde.length; i++) {
+                    if (kde[i][0] >= d.brightness) { // ONCE THE BRIGHTNESS IS CLOSE ENOUGH
+                        const [x1, y1] = kde[i - 1]; // GET THE 2 NEAREST BRIGHTNESS AND KDE VALS
+                        const [x2, y2] = kde[i];
+                        const t = (d.brightness - x1) / (x2 - x1);
+                        kdeDensity = y1 + t * (y2 - y1); // DO LINEAR INERPOLATION
+                        break;
+                    }
+                }
+            }
+            
+            // COMPUTE PERCENTILE RANK FOR BRIGHTNESS
+            const brightnessValues = filteredData.map(f => +f.brightness).sort(d3.ascending);
+            const total = brightnessValues.length;
+            let rank = brightnessValues.findIndex(v => v > d.brightness);
+            if (rank === -1) rank = total; // 100TH PERCENTILE NOT COUNTED AS -1/TOTAL PER SAY, BUT TOTAL/TOTAL
+            else rank = rank + 1;
+            const percentile = (rank / total) * 100;
+            const percentileRounded = Math.round(percentile);
+
             // UPDATE TOOLTIP BAR WITH INFO
             tooltipBar
                 .style('display', 'block')
                 .html(`
                     <strong>Lat:</strong> ${d.latitude.toFixed(4)} |
                     <strong>Lon:</strong> ${d.longitude.toFixed(4)} |
-                    <strong>Brightness:</strong> ${d.brightness}
+                    <strong>Brightness:</strong> ${d.brightness} |
+                    <strong>Density:</strong> ${kdeDensity.toExponential(3)} |
+                    <strong>Percentile:</strong> ${percentileRounded}th |
+                    <strong>Rank:</strong> ${rank} / ${total}
                 `);
         });
 
@@ -282,8 +424,8 @@ function drawMap(filteredData) {
 // -------------------- GLOBAL --------------------
 
 // DEFINE MAP STRUCTURE
-const mapWidth = 1250;
-const mapHeight = 750;
+const mapWidth = 1000;
+const mapHeight = 600;
 
 const mapSvg = d3.select('#mapContainer')
     .append('svg')
@@ -321,13 +463,15 @@ const colorScale = d3.scaleLinear()
 const plotwidth = 1000;
 const plotheight = 500;
 
+let kde = [];
+
 const svg = d3.select('#kdePlot')
     .append('svg')
     .attr('width', plotwidth)
     .attr('height', plotheight);
 
 let xScale, yScale;
-const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+const margin = { top: 20, right: 20, bottom: 50, left: 60 };
 
 // LOAD INITIAL DATA
 setButtonText(dayToggle, daynightFilter);

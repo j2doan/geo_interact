@@ -9,9 +9,24 @@
 </head>
 <body>
     <h1>Vizualizing US Global Fire Activity with Day/Night Cycles</h1>
-    <h3>Select the Day/Night Toggle and Date. Then, click on a fire located on the map.</h3>
+    <h3>Select the Day/Night toggle and move the slider to pick a date. Then click a fire on the map to see more information about it.</h3>
+    <button id="dayToggle">Loading</button>
+    <div id="dateSelector" style="margin: 20px 0;">
+        <label for="dateSlider"><strong>Select Date:</strong></label><br>
+        <input type="range" id="dateSlider" min="0" max="7" step="1" value="0">
+        <div id="dateLabel" style="margin-top: 5px;"></div>
+    </div>
     <div id="mapContainer"></div>
     <div id="kdePlot"></div>
+    <div id="meanmedian" style="
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            font-size: 12px;
+            display: none; /* hidden by default */
+        ">
+    </div>
     <div id="tooltipBar" style="
             width: 100%;
             padding: 6px 10px;
@@ -20,19 +35,6 @@
             font-size: 12px;
             display: none; /* hidden by default */
         ">
-        Click a fire on the map to see details here.
     </div>
-    <button id="dayToggle">Loading</button>
-    <select id="pickDate">
-        <option value="2025-10-27">2025-10-27</option>
-        <option value="2025-10-28">2025-10-28</option>
-        <option value="2025-10-29">2025-10-29</option>
-        <option value="2025-10-30">2025-10-30</option>
-        <option value="2025-10-31">2025-10-31</option>
-        <option value="2025-11-01">2025-11-01</option>
-        <option value="2025-11-02">2025-11-02</option>
-        <option value="2025-11-03">2025-11-03</option>
-    </select>
-
 </body>
 </html>

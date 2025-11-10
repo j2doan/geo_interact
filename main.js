@@ -502,10 +502,10 @@ function drawMap(filteredData) {
 const mapWidth = 900;
 const mapHeight = 600;
 
-const mapSvg = d3.select('#mapContainer')
-    .append('svg')
-    .attr('width', mapWidth)
-    .attr('height', mapHeight);
+const mapSvg = d3.select("#mapContainer")
+    .append("svg")
+    .attr("viewBox", `0 0 ${mapWidth} ${mapHeight}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
 
 // GET US MAP (TopoJSON → GeoJSON)
 const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
@@ -541,8 +541,9 @@ let kde = [];
 // CREATE THE ACTUAL KDEPLOT SVG OBJECT
 const svg = d3.select('#kdePlot')
     .append('svg')
-    .attr('width', plotwidth)
-    .attr('height', plotheight);
+    .attr('viewBox', `0 0 ${plotwidth} ${plotheight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .classed('responsive-svg', true);
 
 // DEFINE THE DISPLAY MARGINS FOR SCALES
 let xScale, yScale;

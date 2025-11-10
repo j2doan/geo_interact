@@ -154,6 +154,12 @@ async function loadAndPlot() {
         return projection([d.longitude, d.latitude]) && isWithinUS(d.longitude, d.latitude)
     });
 
+    // DYNAMIC MAP TITLE
+    const dayString = daynightFilter === 'D' ? 'Daytime' : 'Nighttime';
+    const selectedDateString = selectedDate;
+    d3.select('#mapTitle')
+        .text(`US Map of ${dayString} Fires on ${selectedDateString}`);
+
     drawMap(validData);
     drawPlot(validData);
 }
@@ -303,6 +309,7 @@ function drawPlot(filteredData) {
     meanmedian
         .style('display', 'block')
         .html(`
+            <strong>Fire Subset Info</strong><br><br>
             <strong>Mean Brightness:</strong> ${mean.toFixed(2)}<br>
             <strong>Median Brightness:</strong> ${median.toFixed(2)}<br>
         `);
@@ -430,6 +437,7 @@ function drawMap(filteredData) {
             tooltipBar
                 .style('display', 'block')
                 .html(`
+                    <strong>Selected Fire Info</strong><br><br>
                     <strong>Lat:</strong> ${d.latitude.toFixed(4)}<br>
                     <strong>Lon:</strong> ${d.longitude.toFixed(4)}<br>
                     <strong>Brightness:</strong> ${d.brightness}<br>

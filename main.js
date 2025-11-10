@@ -6,6 +6,8 @@ import * as topojson from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
 
 // ---------- INITIAL FUNCTIONS ----------
 
+
+
 // GET DATA
 async function loadFireData() {
     try {
@@ -17,7 +19,11 @@ async function loadFireData() {
     }
 }
 
+
+
 // ---------- BUTTON FUNCTIONS ----------
+
+
 
 // DAY/NIGHT TOGGLE
 let daynightFilter = localStorage.getItem('daynight') || 'D';  // GET FROM LOCAL STORAGE OR DEFAULT
@@ -66,6 +72,8 @@ dateSlider.addEventListener('input', () => {
     loadAndPlot();
 });
 
+
+
 // DATE SELECTOR
 // let selectedDate = localStorage.getItem('date') || '2025-10-27';  // GET FROM LOCAL STORAGE OR DEFAULT
 // const pickDate = document.getElementById('pickDate');
@@ -84,9 +92,9 @@ dateSlider.addEventListener('input', () => {
 // SET BUTTON TEXT (DAY/NIGHT)
 function setButtonText(dayToggle, daynightFilter) {
     if (daynightFilter === 'D') {
-        dayToggle.textContent = 'Day';
+        dayToggle.textContent = 'Day ☀️';
     } else {
-        dayToggle.textContent = 'Night';
+        dayToggle.textContent = 'Night 🌙';
     }
 }
 
@@ -97,15 +105,21 @@ function updatePageColors(daynightFilter) {
     if (daynightFilter === 'D') {
         document.body.classList.add('day');
         document.body.classList.remove('night');
+        document.body.classList.remove('nightMode');
     } else {
         document.body.classList.add('night');
         document.body.classList.remove('day');
+        document.body.classList.add('nightMode');
     }
     // SAVE PREFERENCE ON REFRESH
     localStorage.setItem('daynight', daynightFilter);
 }
 
+
+
 // ---------- PLOTTING FUNCTIONS ----------
+
+
 
 // FILTER DATA (SELECT SUBSET THAT IS BASED ON DAY/NIGHT AND DATE)
 function filterData(fireData, daynightFilter, selectedDate) {
@@ -115,6 +129,8 @@ function filterData(fireData, daynightFilter, selectedDate) {
         return fireDate === selectedDate && fireDayNight === daynightFilter;
     });
 }
+
+
 
 // LOAD AND PLOT
 async function loadAndPlot() {
@@ -141,6 +157,35 @@ async function loadAndPlot() {
     drawMap(validData);
     drawPlot(validData);
 }
+
+
+
+// ACTUALLY DRAW THE LEGEND
+function drawLegend(svg, legendData) {
+    const items = svg.selectAll('.legendItem')
+        .data(legendData)
+        .join('g')
+        .attr('class', 'legendItem')
+        .attr('transform', (d, i) => `translate(0, ${i * 25})`);
+
+    items.append('line')
+        .attr('x1', 0)
+        .attr('x2', 20)
+        .attr('y1', 10)
+        .attr('y2', 10)
+        .attr('stroke', d => d.color)
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', d => d.dash);
+
+    items.append('text')
+        .attr('x', 25)
+        .attr('y', 14)
+        .text(d => d.label)
+        .style('font-size', '12px')
+        .style('fill', 'currentColor');
+}
+
+
 
 // PLOT KDE CURVE
 function drawPlot(filteredData) {
@@ -201,7 +246,7 @@ function drawPlot(filteredData) {
 
     // AXES LABLES
     g.append("text")
-        .attr("class", "x label")
+        .attr("class", "axis-label")
         .attr("text-anchor", "middle")
         .attr("x", width / 2)
         .attr("y", height + margin.bottom / 1.5)
@@ -209,7 +254,7 @@ function drawPlot(filteredData) {
         .style("font-weight", "bold");
 
     g.append("text")
-        .attr("class", "y label")
+        .attr("class", "axis-label")
         .attr("text-anchor", "middle")
         .attr("transform", `rotate(-90)`)
         .attr("x", -height / 2)
@@ -258,8 +303,8 @@ function drawPlot(filteredData) {
     meanmedian
         .style('display', 'block')
         .html(`
-            <strong>Mean Brightness (Purple):</strong> ${mean.toFixed(2)} |
-            <strong>Median Brightness (Green):</strong> ${median.toFixed(2)}
+            <strong>Mean Brightness:</strong> ${mean.toFixed(2)}<br>
+            <strong>Median Brightness:</strong> ${median.toFixed(2)}<br>
         `);
 
     // GRIDLINES
@@ -287,6 +332,17 @@ function drawPlot(filteredData) {
             .tickSize(-width)
             .tickFormat("")
         );
+
+    // SET MEAN/MEDIAN LEGEND DATA (ALWAYS DEFAULT)
+    let legendData = [
+        { label: "Mean Brightness", color: "purple", dash: "4 2" },
+        { label: "Median Brightness", color: "green", dash: "2 2" }
+    ];
+
+    drawLegend(legendSvg, legendData);
+
+    // RESET TOOLTIP BAR
+    d3.select('#tooltipBar').style('display', 'none');
 }
 
 
@@ -313,6 +369,7 @@ function drawMap(filteredData) {
             d3.select(event.currentTarget)
             .style('cursor', 'default');
         })
+        // WHEN SELECT A FIRE
         .on('click', (event, d) => {
             event.stopPropagation(); // IF YOU CLICK ON SAME DOT AGAIN WHILE IT IS ACTIVE, IT WILL NOT DEACTIVATE
 
@@ -364,9 +421,8 @@ function drawMap(filteredData) {
             // COMPUTE PERCENTILE RANK FOR BRIGHTNESS
             const brightnessValues = filteredData.map(f => +f.brightness).sort(d3.ascending);
             const total = brightnessValues.length;
-            let rank = brightnessValues.findIndex(v => v > d.brightness);
-            if (rank === -1) rank = total; // 100TH PERCENTILE NOT COUNTED AS -1/TOTAL PER SAY, BUT TOTAL/TOTAL
-            else rank = rank + 1;
+            let rank = d3.bisectRight(brightnessValues, d.brightness);
+            const inverseRank = total - rank + 1;
             const percentile = (rank / total) * 100;
             const percentileRounded = Math.round(percentile);
 
@@ -374,17 +430,29 @@ function drawMap(filteredData) {
             tooltipBar
                 .style('display', 'block')
                 .html(`
-                    <strong>Lat:</strong> ${d.latitude.toFixed(4)} |
-                    <strong>Lon:</strong> ${d.longitude.toFixed(4)} |
-                    <strong>Brightness:</strong> ${d.brightness} |
-                    <strong>Density:</strong> ${kdeDensity.toExponential(3)} |
-                    <strong>Percentile:</strong> ${percentileRounded}th |
-                    <strong>Rank:</strong> ${rank} / ${total}
+                    <strong>Lat:</strong> ${d.latitude.toFixed(4)}<br>
+                    <strong>Lon:</strong> ${d.longitude.toFixed(4)}<br>
+                    <strong>Brightness:</strong> ${d.brightness}<br>
+                    <strong>Density:</strong> ${kdeDensity.toExponential(3)}<br>
+                    <strong>Percentile:</strong> ${percentileRounded}th<br>
+                    <strong>Rank:</strong> ${inverseRank} / ${total}<br>
+                    <em>Note: Lower rank means higher brightness in subset.</em>
                 `);
+            
+            // UPDATE LEGEND TO INCLUDE SELECTED FIRE
+            const fireColor = colorScale(d.brightness);
+            const currentLegendData = [
+            { label: "Mean Brightness", color: "purple", dash: "4 2" },
+            { label: "Median Brightness", color: "green", dash: "2 2" },
+            { label: "Selected Fire", color: fireColor, dash: "0" }
+            ];
+
+            drawLegend(legendSvg, currentLegendData);
         });
 
-    // HIDE TOOLTIP BAR, VERTICAL LINE, AND RESET DOT WHEN CLICKING ELSEWHERE
-    d3.select('body').on('click', (event) => {
+    // WHEN CLICK ELSEWHERE
+    // HIDE TOOLTIP BAR, VERTICAL LINE, AND RESET DOT
+    d3.select('#mapContainer').on('click', (event) => {
         if (!event.target.closest('circle')) {
             tooltipBar.style('display', 'none'); // RESET TOOLTIP BAR
             svg.selectAll('line.kdePoint').remove(); // RESET VERTICAL LINE
@@ -395,6 +463,13 @@ function drawMap(filteredData) {
                         .attr('stroke-width', null);
                 selectedDot = null;
             }
+            
+            // RESET LEGEND BACK TO MEAN/MEDIAN (DEFAULT)
+            const baseLegend = [
+            { label: "Mean Brightness", color: "purple", dash: "4 2" },
+            { label: "Median Brightness", color: "green", dash: "2 2" }
+            ];
+            drawLegend(legendSvg, baseLegend);
         }
     });
 
@@ -424,7 +499,7 @@ function drawMap(filteredData) {
 // -------------------- GLOBAL --------------------
 
 // DEFINE MAP STRUCTURE
-const mapWidth = 1000;
+const mapWidth = 900;
 const mapHeight = 600;
 
 const mapSvg = d3.select('#mapContainer')
@@ -438,7 +513,7 @@ const states = topojson.feature(us, us.objects.states);
 const usa = { type: "FeatureCollection", features: states.features };
 
 const projection = d3.geoAlbersUsa()
-    .fitSize([mapWidth, mapHeight], states); // Adjust zoom level if needed
+    .fitSize([mapWidth, mapHeight], states);
 
 const geoPath = d3.geoPath().projection(projection);
 
@@ -454,7 +529,6 @@ mapSvg.selectAll('path')
 // SET GLOBAL COLOR GRADIENT FOR BRIGHTNESS
 const fireDataForColor = await loadFireData();
 const brightnessExtent = d3.extent(fireDataForColor, d => +d.brightness);
-
 const colorScale = d3.scaleLinear()
     .domain([brightnessExtent[0], (brightnessExtent[0]+brightnessExtent[1])/2, brightnessExtent[1]])
     .range(['yellow', 'orange', 'red']);
@@ -462,16 +536,23 @@ const colorScale = d3.scaleLinear()
 // DEFINE KDE PLOT STRUCTURE
 const plotwidth = 1000;
 const plotheight = 500;
-
 let kde = [];
 
+// CREATE THE ACTUAL KDEPLOT SVG OBJECT
 const svg = d3.select('#kdePlot')
     .append('svg')
     .attr('width', plotwidth)
     .attr('height', plotheight);
 
+// DEFINE THE DISPLAY MARGINS FOR SCALES
 let xScale, yScale;
 const margin = { top: 20, right: 20, bottom: 50, left: 60 };
+
+// CREATE THE ACTUAL LEGEND SVG OBJECT
+d3.select("#legend").selectAll("*").remove();
+const legendSvg = d3.select("#legend")
+    .attr("width", 180)
+    .attr("height", 80);
 
 // LOAD INITIAL DATA
 setButtonText(dayToggle, daynightFilter);

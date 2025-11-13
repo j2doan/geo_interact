@@ -9,7 +9,11 @@
 </head>
 <body>
     <h1>🔥 Vizualizing US Global Fire Activity with Day/Night Cycles 🔥</h1>
-    <h3>Select the Day/Night toggle and move the slider to pick a date. Then click a fire on the map to see more information about it.</h3>
+    <h3>
+        Use the Day/Night toggle and Date slider to filter the dataset.<br>
+        Then, click a fire on the map to view its details and compare it with the filtered data subset.<br>
+        Click anywhere else on the map or adjust the filters to deselect the fire.<br>
+    </h3>
     <div id="controls">
         <button id="dayToggle">Loading... ⌛</button>
         <div id="dateSelector" style="margin: 20px 0;">
@@ -20,6 +24,7 @@
     </div>
     <h2 id="mapTitle"></h2>
     <div id="mapContainer"></div>
+    <h3 id="caption"></h4>
     <div id="graphs">
         <h2>KDE Plot</h2>
         <div id="kdePlot"></div>
@@ -32,5 +37,6 @@
             <div id="tooltipBar" style="display: none;"></div>
         </div>
     </div>
+    <h3>To learn more about the design rationales and development process of this project, click <a href="https://docs.google.com/document/d/1hah3egywl6kqstQ9eRE8YnQNukxTN9YVJP_4yXVzQDc/edit?usp=sharing" style="color: steelblue" target="_blank">here</a>!</h3>
 </body>
 </html>

@@ -161,6 +161,7 @@ async function loadAndPlot() {
         .text(`US Map of ${dayString} Fires on ${selectedDateString}`);
 
     drawMap(validData);
+    drawCaption(daynightFilter, selectedDate)
     drawPlot(validData);
 }
 
@@ -438,13 +439,14 @@ function drawMap(filteredData) {
                 .style('display', 'block')
                 .html(`
                     <strong>Selected Fire Info</strong><br><br>
+                    <strong>State:</strong> ${getStateFromLatLon(d.latitude, d.longitude, usa)}<br>
                     <strong>Lat:</strong> ${d.latitude.toFixed(4)}<br>
                     <strong>Lon:</strong> ${d.longitude.toFixed(4)}<br>
                     <strong>Brightness:</strong> ${d.brightness}<br>
                     <strong>Density:</strong> ${kdeDensity.toExponential(3)}<br>
                     <strong>Percentile:</strong> ${percentileRounded}th<br>
                     <strong>Rank:</strong> ${inverseRank} / ${total}<br>
-                    <em>Note: Lower rank means higher brightness in subset.</em>
+                    <em>Note: Lower rank means higher brightness in subset. Density means how frequent the brightness value of that fire appeared in the subset.</em>
                 `);
             
             // UPDATE LEGEND TO INCLUDE SELECTED FIRE
@@ -504,6 +506,69 @@ function drawMap(filteredData) {
         .attr('cy', d => d.y);
 }
 
+
+
+function drawCaption(daynightFilter, selectedDate) {
+    const captions = {
+        "2025-10-27": {
+            D: "There are two <span class='keyword-localized'>localized</span> fire clusters with <span class='keyword-mild'>mild</span>-<span class='keyword-moderate'>moderate</span> brightness. One in Western Oregon and the other in Eastern Texas.",
+            N: "There are only four individual fires observed with <span class='keyword-mild'>mild</span> brightness. Two in Texas and two in Florida."
+        },
+        "2025-10-28": {
+            D: "There are two <span class='keyword-widespread'>widespread</span> fire clusters with <span class='keyword-mild'>mild</span>-<span class='keyword-moderate'>moderate</span> brightness. One is in Northern California and the other in Southern Oregon, with some fires spreading between those states. There are also some <span class='keyword-localized'>localized</span> fire clusters with <span class='keyword-moderate'>moderate</span> brightness in other western states.",
+            N: "There are several <span class='keyword-sparse'>sparse</span> fire clusters that spreads throughout Washington, Oregon, and Idaho with <span class='keyword-mild'>mild</span> brightness. It seems the daytime fire cluster in Oregon spread northward into Washington."
+        },
+        "2025-10-29": {
+            D: "There is a <span class='keyword-massive'>massive</span> fire cluster with <span class='keyword-moderate'>moderate</span>-<span class='keyword-severe'>severe</span> brightness in the West Coast regions of Oregon and Washington. Meanwhile, there are some <span class='keyword-sparse'>sparse</span> fire clusters with <span class='keyword-mild'>mild</span>-<span class='keyword-severe'>severe</span> brightness in Texas.",
+            N: "There are a few <span class='keyword-sparse'>sparse</span> fire clusters with <span class='keyword-mild'>mild</span> brightness. It seems they are generally near the locations of the daytime fires clusters that day."
+        },
+        "2025-10-30": {
+            D: "There are two <span class='keyword-widespread'>widespread</span> fire clusters. One is a compacted cluster with <span class='keyword-moderate'>moderate</span>-<span class='keyword-severe'>severe</span> brightness in Northern Idaho, and the other is a less compacted cluster with <span class='keyword-mild'>mild</span> brightness in Louisiana that spreads into Eastern Texas.",
+            N: "There is a <span class='keyword-localized'>localized</span> fire cluster in Northern Idaho, likely continuing from the compacted daytime fire cluster in Idaho."
+        },
+        "2025-10-31": {
+            D: "There is a <span class='keyword-localized'>localized</span> fire cluster with <span class='keyword-severe'>severe</span> brightness in Arizona. But there is also a <span class='keyword-massive'>massive</span> fire cluster with <span class='keyword-moderate'>moderate</span> brightness throughout the U.S. Southeastern region, ranging from Louisiana to Florida.",
+            N: "There are some <span class='keyword-localized'>localized</span> fire clusters with <span class='keyword-mild'>mild</span> brightness in the U.S. Northwestern region around that are beginning to emerge."
+        },
+        "2025-11-01": {
+            D: "There are a lot of <span class='keyword-sparse'>sparse</span> residual fire clusters with <span class='keyword-mild'>mild</span> brightness throughout the U.S. Southeastern and Northwestern regions. They are likely residual fires from the previous day's outbreak during the day.",
+            N: "There are only three individual fires with <span class='keyword-mild'>mild</span> brightness. Two are located in Georgia and the other one is in Hawaii."
+        },
+        "2025-11-02": {
+            D: "There are four <span class='keyword-localized'>localized</span> fire clusters. Three are in Northern Idaho, Northern Arizona, and Florida with <span class='keyword-moderate'>moderate</span>-<span class='keyword-severe'>severe</span> brightness, and the other one is in Louisiana with <span class='keyword-mild'>mild</span> brightness.",
+            N: "There are a few individual fires with <span class='keyword-mild'>mild</span> brightness in the general U.S. Western region. Their locations are most likely a lingering result based on three of the <span class='keyword-localized'>localized</span> fire clusters in Northern Idaho, Arizona, and Louisiana during that day."
+        },
+        "2025-11-03": {
+            D: "There is a <span class='keyword-massive'>massive</span> fire cluster outbreak with <span class='keyword-mild'>mild</span>-<span class='keyword-moderate'>moderate</span> brightness in Louisiana that is spread eastward into neighboring states. There is also a <span class='keyword-sparse'>sparse</span>, but <span class='keyword-severe'>severely</span> bright fire cluster in California.",
+            N: "There are a few <span class='keyword-sparse'>sparse</span> fire clusters with <span class='keyword-mild'>mild</span> brightness in Oregon and Texas."
+        }
+    };
+
+    // SELECT THE APPROPRIATE CAPTION
+    const captionText = captions[selectedDate] && captions[selectedDate][daynightFilter];
+
+    // UPDATE THE HTML CAPTION
+    if (captionText) {
+        d3.select("#caption").html(captionText);
+    } else {
+        d3.select("#caption").text("No caption available for the selected date or time.");
+    }
+}
+
+// SIZE: SPARSE/LOCALIZED < WIDESPREAD < MASSIVE
+// BRIGHTNESS: MILD < MODERATE < SEVERE
+
+
+
+function getStateFromLatLon(lat, lon, statesGeoJSON) {
+    for (let state of statesGeoJSON.features) {
+        if (d3.geoContains(state, [lon, lat])) {
+            return state.properties.name;
+        }
+    }
+    return 'Unknown State';
+}
+
 // -------------------- GLOBAL --------------------
 
 // DEFINE MAP STRUCTURE
@@ -542,7 +607,7 @@ const colorScale = d3.scaleLinear()
     .range(['yellow', 'orange', 'red']);
 
 // DEFINE KDE PLOT STRUCTURE
-const plotwidth = 1000;
+const plotwidth = 950;
 const plotheight = 500;
 let kde = [];
 

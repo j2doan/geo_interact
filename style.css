@@ -183,6 +183,39 @@ h1, h2, h3, h4 {
 
 
 
+/* ---------- CAPTIONS ---------- */
+#caption {
+    font-style: italic;
+}
+
+.keyword-sparse {
+    color: #F0E68C;
+}
+
+.keyword-localized {
+    color: #F0E68C;
+}
+
+.keyword-widespread {
+    color: orange;
+}
+
+.keyword-massive {
+    color: red;
+}
+
+.keyword-mild {
+    color: #F0E68C;
+}
+
+.keyword-moderate {
+    color: orange;
+}
+
+.keyword-severe {
+    color: red;
+}
+
 /* ---------- NIGHTMODE SHADOWS + BACKGROUNDS ---------- */
 .nightMode #dayToggle,
 .nightMode #dateSelector,

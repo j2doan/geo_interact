@@ -607,7 +607,7 @@ const colorScale = d3.scaleLinear()
     .range(['yellow', 'orange', 'red']);
 
 // DEFINE KDE PLOT STRUCTURE
-const plotwidth = 950;
+const plotwidth = 900;
 const plotheight = 500;
 let kde = [];
 
